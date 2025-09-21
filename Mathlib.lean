@@ -4957,6 +4957,7 @@ import Mathlib.Order.Birkhoff
 import Mathlib.Order.BooleanAlgebra
 import Mathlib.Order.BooleanAlgebra.Basic
 import Mathlib.Order.BooleanAlgebra.Defs
+import Mathlib.Order.BooleanAlgebra.Effect
 import Mathlib.Order.BooleanAlgebra.Set
 import Mathlib.Order.BooleanGenerators
 import Mathlib.Order.BooleanSubalgebra

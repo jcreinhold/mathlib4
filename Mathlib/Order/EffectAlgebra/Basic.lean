@@ -4,23 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jacob Reinhold
 -/
 import Mathlib.Order.BooleanAlgebra.Basic
-import Mathlib.Data.Finset.Lattice.Basic
-import Mathlib.Data.Fintype.Basic
+import Mathlib.Data.Real.Basic
+import Mathlib.Algebra.Order.Ring.Defs
 
 /-!
-# Effect Algebra Operations on Generalized Boolean Algebras
+# Effect Algebras
 
-This file shows that every `GeneralizedBooleanAlgebra` can be viewed as an effect algebra
-by providing the appropriate operations and proving they satisfy the Foulis-Bennett axioms.
+This file defines effect algebras as `GeneralizedBooleanAlgebra` with
+effect operations and notation. Effect algebras model quantum effects and
+unsharp measurements.
 
-Effect algebras model quantum effects and unsharp measurements in quantum mechanics.
-They are mathematically equivalent to `GeneralizedBooleanAlgebra`.
+Extensions for convex structures, sequential operations, and GPTs
+appear in separate files.
 
 ## Main definitions
 
-* `GeneralizedBooleanAlgebra.orthogonal`: Elements are disjoint (notation: `a ⊥ b`)
-* `GeneralizedBooleanAlgebra.oplus`: Sum of disjoint elements (notation: `a ⊕[h] b`)
-* `GeneralizedBooleanAlgebra.effectCompl`: Effect complement `⊤ \ a` (notation: `aᵉ`)
+* `EffectAlgebra`: Type alias for `GeneralizedBooleanAlgebra`
+* `EffectAlgebra.orthogonal`: Elements are disjoint (notation: `a ⊥ b`)
+* `EffectAlgebra.oplus`: Sum of disjoint elements (notation: `a ⊕[h] b`)
+* `EffectAlgebra.effectCompl`: Effect complement `⊤ \ a` (notation: `aᵉ`)
+* `EffectState`: States on effect algebras (probability measures on effects)
 
 ## Main results
 
@@ -41,71 +44,74 @@ open Order
 
 variable {α : Type*}
 
-namespace GeneralizedBooleanAlgebra
+/-- Effect algebras are generalized Boolean algebras with
+    partial operations on orthogonal elements -/
+abbrev EffectAlgebra (α : Type*) := GeneralizedBooleanAlgebra α
 
-section EffectAlgebra
+namespace EffectAlgebra
 
-variable [GeneralizedBooleanAlgebra α] [OrderTop α]
+variable [EffectAlgebra α] [OrderTop α]
 
 /-! ### Effect Algebra Operations -/
 
-/-- Elements are orthogonal when they are disjoint in the lattice sense -/
+/-- Elements are orthogonal when disjoint -/
 def orthogonal (a b : α) : Prop := Disjoint a b
 
-/-- Sum of orthogonal elements is their supremum -/
-def oplus (a b : α) (_ : orthogonal a b) : α := a ⊔ b
+/-- Sum of orthogonal elements. Only defined when `a` and `b` are orthogonal. -/
+def oplus (a b : α) (h : orthogonal a b) : α :=
+  have _ := h  -- Use orthogonality
+  a ⊔ b
 
-/-- Effect complement is the difference from top -/
+/-- Effect complement: `⊤ \ a` -/
 def effectCompl (a : α) : α := ⊤ \ a
 
 /-! ### Notation -/
 
-scoped notation:50 a " ⊥ " b => GeneralizedBooleanAlgebra.orthogonal a b
-scoped notation:65 a " ⊕[" h "] " b => GeneralizedBooleanAlgebra.oplus a b h
-scoped postfix:max "ᵉ" => GeneralizedBooleanAlgebra.effectCompl
+@[inherit_doc] scoped notation:50 a " ⊥ " b => EffectAlgebra.orthogonal a b
+@[inherit_doc] scoped notation:65 a " ⊕[" h "] " b => EffectAlgebra.oplus a b h
+@[inherit_doc] scoped postfix:max "ᵉ" => EffectAlgebra.effectCompl
 
 /-! ### The Five Foulis-Bennett Axioms -/
 
 omit [OrderTop α] in
-/-- EA1: Orthogonality is symmetric -/
+/-- EA1: Orthogonality commutes -/
 theorem orthogonal_comm (a b : α) : (a ⊥ b) ↔ (b ⊥ a) :=
   disjoint_comm
 
 omit [OrderTop α] in
-/-- EA2: Commutativity of orthogonal sum -/
+/-- EA2: Orthogonal sum commutes -/
 theorem oplus_comm (a b : α) (h : a ⊥ b) :
     oplus a b h = oplus b a ((orthogonal_comm a b).mp h) :=
   sup_comm a b
 
 omit [OrderTop α] in
-/-- EA3: Associativity condition for partial addition -/
+/-- EA3: Partial addition associates -/
 theorem oplus_assoc (a b c : α) (hbc : b ⊥ c)
     (habc : a ⊥ oplus b c hbc) :
     ∃ (hab : a ⊥ b) (hab_c : (oplus a b hab) ⊥ c),
       oplus a (oplus b c hbc) habc = oplus (oplus a b hab) c hab_c := by
-  -- hab : a ⊥ b follows from a being disjoint from b ⊔ c
+  -- a ⊥ b since a ⊥ (b ⊔ c)
   use Disjoint.mono_right le_sup_left habc
-  -- hab_c : (a ⊔ b) ⊥ c follows from both a and b being disjoint from c
+  -- (a ⊔ b) ⊥ c since both a and b are disjoint from c
   have hab_c : Disjoint (a ⊔ b) c := by
     rw [disjoint_sup_left]
     exact ⟨Disjoint.mono_right le_sup_right habc, hbc⟩
   use hab_c
-  -- The equality follows from sup_assoc
   simp only [oplus, sup_assoc]
 
-/-- EA4: Every element is orthogonal to its effect complement -/
+/-- EA4: Elements are orthogonal to their complements -/
 theorem orthogonal_effectCompl (a : α) : a ⊥ aᵉ := by
   simp only [orthogonal, effectCompl]
   exact disjoint_sdiff_self_right
 
-/-- EA5: Sum with effect complement gives top -/
+/-- EA5: Sum with complement gives top -/
 theorem oplus_effectCompl (a : α) :
     oplus a aᵉ (orthogonal_effectCompl a) = ⊤ := by
   simp only [oplus, effectCompl]
   rw [sup_comm]
   exact sdiff_sup_cancel le_top
 
-/-- EA6: Characterization of bottom via orthogonality with top -/
+/-- EA6: Top orthogonal to a iff a = ⊥ -/
 theorem orthogonal_top_iff (a : α) : (⊤ ⊥ a) ↔ (a = ⊥) := by
   simp only [orthogonal, disjoint_comm]
   letI : BoundedOrder α := BoundedOrder.mk
@@ -114,12 +120,12 @@ theorem orthogonal_top_iff (a : α) : (⊤ ⊥ a) ↔ (a = ⊥) := by
 /-! ### Additional Properties -/
 
 omit [OrderTop α] in
-/-- Orthogonal sum equals supremum -/
+/-- Sum equals supremum -/
 theorem oplus_eq_sup {a b : α} (h : a ⊥ b) :
     oplus a b h = a ⊔ b := rfl
 
 omit [OrderTop α] in
-/-- Bottom is orthogonal to everything -/
+/-- Bottom orthogonal to all -/
 @[simp] theorem bot_orthogonal (a : α) : ⊥ ⊥ a :=
   disjoint_bot_left
 
@@ -128,7 +134,7 @@ omit [OrderTop α] in
   disjoint_bot_right
 
 omit [OrderTop α] in
-/-- Orthogonal sum with bottom -/
+/-- Sum with bottom -/
 theorem bot_oplus (a : α) (h : ⊥ ⊥ a := bot_orthogonal a) :
     (oplus ⊥ a) h = a := by
   unfold oplus
@@ -153,49 +159,45 @@ theorem effectCompl_effectCompl (a : α) : aᵉᵉ = a := by
   simp only [effectCompl, sdiff_self]
 
 omit [OrderTop α] in
-/-- An element is orthogonal to itself iff it is bottom -/
+/-- Self-orthogonal iff bottom -/
 theorem orthogonal_self_iff {a : α} : (a ⊥ a) ↔ (a = ⊥) := by
   simp only [orthogonal]
   exact disjoint_self
 
-/-- Orthocomplement is antitone -/
+/-- Complement reverses order -/
 theorem effectCompl_le_effectCompl {a b : α} (h : a ≤ b) : bᵉ ≤ aᵉ :=
   sdiff_le_sdiff_left h
 
 omit [OrderTop α] in
-/-- Order structure induced by effect algebra -/
+/-- Order from orthogonal decomposition -/
 theorem le_iff_exists_orthogonal_oplus {a b : α} : a ≤ b ↔
     ∃ (c : α) (h : a ⊥ c), oplus a c h = b := by
   constructor
-  · -- Forward direction: if a ≤ b, use c = b \ a
-    intro hab
+  · intro hab
     refine ⟨b \ a, ?orthogonal, ?equation⟩
     case orthogonal =>
       exact disjoint_sdiff_self_right
     case equation =>
       simp [oplus]
       exact hab
-  · -- Backward direction: if decomposition exists, then a ≤ b
+  · -- If decomposition exists, then a ≤ b
     intro ⟨c, hac, heq⟩
     rw [← heq, oplus]
     exact le_sup_left
 
 end EffectAlgebra
 
-end GeneralizedBooleanAlgebra
+/-! ### States on Effect Algebras -/
 
-/-! ### Examples -/
-
-section Examples
-
-open GeneralizedBooleanAlgebra
-
-/-- Any `GeneralizedBooleanAlgebra` with a top element can be viewed as an effect algebra -/
-example [GeneralizedBooleanAlgebra α] [OrderTop α] (a b : α) (h : orthogonal a b) :
-  oplus a b h = a ⊔ b := rfl
-
-/-- Finsets form an effect algebra -/
-example {β : Type*} [DecidableEq β] [Fintype β] (A B : Finset β) (h : orthogonal A B) :
-  oplus A B h = A ∪ B := rfl
-
-end Examples
+/-- States assign probabilities to effects.
+In GPTs, states are preparations and effects are measurements. -/
+structure EffectState (α : Type*) [EffectAlgebra α] [OrderTop α] where
+  /-- Map effects to probabilities -/
+  val : α → ℝ
+  /-- Non-negative values -/
+  nonneg : ∀ a, 0 ≤ val a
+  /-- Normalized to 1 -/
+  normalized : val ⊤ = 1
+  /-- Additive on orthogonal elements -/
+  additive : ∀ a b (h : EffectAlgebra.orthogonal a b),
+    val (EffectAlgebra.oplus a b h) = val a + val b

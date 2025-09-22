@@ -4957,7 +4957,6 @@ import Mathlib.Order.Birkhoff
 import Mathlib.Order.BooleanAlgebra
 import Mathlib.Order.BooleanAlgebra.Basic
 import Mathlib.Order.BooleanAlgebra.Defs
-import Mathlib.Order.BooleanAlgebra.Effect
 import Mathlib.Order.BooleanAlgebra.Set
 import Mathlib.Order.BooleanGenerators
 import Mathlib.Order.BooleanSubalgebra
@@ -5026,6 +5025,9 @@ import Mathlib.Order.Directed
 import Mathlib.Order.DirectedInverseSystem
 import Mathlib.Order.Disjoint
 import Mathlib.Order.Disjointed
+import Mathlib.Order.EffectAlgebra.Basic
+import Mathlib.Order.EffectAlgebra.Convex
+import Mathlib.Order.EffectAlgebra.GPT
 import Mathlib.Order.Extension.Linear
 import Mathlib.Order.Extension.Well
 import Mathlib.Order.Filter.AtTopBot.Archimedean

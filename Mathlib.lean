@@ -5028,6 +5028,7 @@ import Mathlib.Order.Disjointed
 import Mathlib.Order.EffectAlgebra.Basic
 import Mathlib.Order.EffectAlgebra.Convex
 import Mathlib.Order.EffectAlgebra.GPT
+import Mathlib.Order.EffectAlgebra.OmegaComplete
 import Mathlib.Order.EffectAlgebra.PCM
 import Mathlib.Order.Extension.Linear
 import Mathlib.Order.Extension.Well
